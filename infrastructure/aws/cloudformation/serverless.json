@@ -1,0 +1,38 @@
+{
+    "AWSTemplateFormatVersion" : "2010-09-09",
+    "Description" : "Serverless Stack AWS CloudFormation",
+    "Parameters": {
+        "S3BucketName" : {
+            "Default" : "jainrishabh",
+            "Type" : "String"
+        }
+    },
+    "Resources" : {
+        "s3bucketlambda" : {
+            "Type" : "AWS::S3::Bucket",
+            "Properties" : {
+              "BucketName" : {
+                "Fn::Join" : ["",["code-deploy.csye6225-fall2018-",{"Ref":"S3BucketName"},"-lambda-function"]]  
+              }
+            }
+        },
+        "LambdaServiceRole" : {
+            "Type": "AWS::IAM::Role",
+              "Properties": {
+                "AssumeRolePolicyDocument": {
+                  "Version" : "2012-10-17",
+                  "Statement": [ {
+                    "Effect": "Allow",
+                    "Principal": {
+                      "Service": [ "lambda.amazonaws.com" ]
+                    },
+                    "Action": [ "sts:AssumeRole" ]
+                  }]
+                },
+                "Path": "/",
+                "RoleName" : "LambdaServiceRole",
+                "ManagedPolicyArns" : ["arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess","arn:aws:iam::aws:policy/AmazonSESFullAccess","arn:aws:iam::aws:policy/AmazonS3FullAccess"]
+              }
+          }
+    }
+}
