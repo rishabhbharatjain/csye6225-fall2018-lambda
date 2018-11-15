@@ -1,5 +1,6 @@
 {
   "AWSTemplateFormatVersion" : "2010-09-09",
+  "Description" : "Networking Stack",
   "Resources" : {
     "vpc" : {
       "Type" : "AWS::EC2::VPC",
