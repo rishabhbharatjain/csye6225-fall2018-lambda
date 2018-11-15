@@ -43,8 +43,9 @@
         "Type" : "String",
         "Default" : "15"
       },
-      "AccountId" : {
-        "Type" : "String"
+      "MySNSTopicName":{
+        "Type": "String",
+        "Default": "SNSTopicName"
       }
     },
     "Mappings" : {
@@ -144,7 +145,8 @@
                 {"Fn::Join":["",["sudo echo \"JAVA_OPTS=\\\"\\${JAVA_OPTS} -Dfolder=centos\\\"\" >> /opt/tomcat/bin/setenv.sh "]]},
                 {"Fn::Join":["",["sudo echo \"JAVA_OPTS=\\\"\\${JAVA_OPTS} -Dusername=",{"Ref":"usernameRds"},"\\\"\" >> /opt/tomcat/bin/setenv.sh "]]},
                 {"Fn::Join":["",["sudo echo \"JAVA_OPTS=\\\"\\${JAVA_OPTS} -Dpassword=",{"Ref":"passwordRds"},"\\\"\" >> /opt/tomcat/bin/setenv.sh "]]},
-                  {"Fn::Join":["",["sudo echo \"JAVA_OPTS=\\\"\\${JAVA_OPTS} -DbucketName=",{"Fn::Join": ["", ["csye6225-fall2018-", {"Ref": "S3BucketName" },".me.csye6225.com" ]] },"\\\"\" >> /opt/tomcat/bin/setenv.sh "]]},
+                {"Fn::Join":["",["sudo echo \"JAVA_OPTS=\\\"\\${JAVA_OPTS} -DbucketName=",{"Fn::Join": ["", ["csye6225-fall2018-", {"Ref": "S3BucketName" },".me.csye6225.com" ]] },"\\\"\" >> /opt/tomcat/bin/setenv.sh "]]},
+                {"Fn::Join":["",["sudo echo \"JAVA_OPTS=\\\"\\${JAVA_OPTS} -DsnsName=",{"Ref":"MySNSTopicName"},"\\\"\" >> /opt/tomcat/bin/setenv.sh "]]},
                   
                   "chmod +x /opt/tomcat/bin/setenv.sh",
                     
@@ -227,7 +229,7 @@
             "WriteCapacityUnits" : "5"
           },
           "TimeToLiveSpecification": {
-            "AttributeName": "time",
+            "AttributeName": "TTL",
             "Enabled": "TRUE"
           },
           "TableName" : "csye6225"
@@ -276,21 +278,6 @@
           "DBSecurityGroups" : [{"Ref" : "rds"}],
           "Tags" : [ {"Key" : "Name", "Value" : {"Fn::Join" :[ "-",[{"Ref" : "AWS::StackName"},"csye6225-rds-instance"]]}}]
         }
-      },
-      "MySNSTopic" : {
-        "Type" : "AWS::SNS::Topic",
-        "Properties" : {
-          "DisplayName" : "SNSTopicDisplayName",
-          "TopicName" : "SNSTopicName",
-          "Subscription" : [
-            {
-              "Endpoint" : {"Fn::Join" : ["",["arn:aws:lambda:us-east-1:",{"Ref":"AccountId"},":function:SNSTopicName"]]  
-              },
-              "Protocol" : "lambda"
-            }
-          ]
-        }
-  
       }
     },
     "Outputs": {
