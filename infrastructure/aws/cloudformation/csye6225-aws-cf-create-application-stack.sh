@@ -12,8 +12,8 @@ read network_stack
 echo " "
 echo "Enter the name for S3 bucket"
 read bucket_name
-echo "Enter the AccountId"
-read account_id
+echo "Enter the name for SNS Topic"
+read sns_topic
 stack=$(aws cloudformation describe-stacks --stack-name $network_stack --query Stacks[0].StackId --output text)
 vpc_name="${network_stack}-csye6225-vpc"
 vpcId=$(aws ec2 describe-vpcs --filters "Name=tag:aws:cloudformation:stack-id,Values=$stack" --query 'Vpcs[0].VpcId' --output text)
@@ -40,7 +40,7 @@ read usernameRds
 echo "Enter Master password for RDS instance (csye6225password)"
 read passwordRds
 echo " "
-create_stack=$(aws cloudformation create-stack --stack-name $stack_name --template-body file://csye6225-cf-application.json --parameters ParameterKey=KeyName,ParameterValue=$keyname ParameterKey=vpcId,ParameterValue=$vpcId ParameterKey=subnet1,ParameterValue=$subnet1 ParameterKey=subnet2,ParameterValue=$subnet2 ParameterKey=subnet3,ParameterValue=$subnet3 ParameterKey=allocatedStorage,ParameterValue=$allocatedStorage ParameterKey=usernameRds,ParameterValue=$usernameRds ParameterKey=passwordRds,ParameterValue=$passwordRds ParameterKey=S3BucketName,ParameterValue=$bucket_name ParameterKey=AccountId,ParameterValue=$account_id)
+create_stack=$(aws cloudformation create-stack --stack-name $stack_name --template-body file://csye6225-cf-application.json --parameters ParameterKey=KeyName,ParameterValue=$keyname ParameterKey=vpcId,ParameterValue=$vpcId ParameterKey=subnet1,ParameterValue=$subnet1 ParameterKey=subnet2,ParameterValue=$subnet2 ParameterKey=subnet3,ParameterValue=$subnet3 ParameterKey=allocatedStorage,ParameterValue=$allocatedStorage ParameterKey=usernameRds,ParameterValue=$usernameRds ParameterKey=passwordRds,ParameterValue=$passwordRds ParameterKey=S3BucketName,ParameterValue=$bucket_name ParameterKey=MySNSTopicName,ParameterValue=$sns_topic)
 if [ $? -eq 0 ]; then
   echo "Creating Stack ${stack_name} "
   aws cloudformation wait stack-create-complete --stack-name $stack_name
