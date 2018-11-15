@@ -20,6 +20,14 @@
         }
       }
     },
+    "s3lambdabucket" : {
+      "Type" : "AWS::S3::Bucket",
+      "Properties" : {
+        "BucketName" : {
+          "Fn::Join" : ["",["lambda.csye6225-fall2018-",{"Ref":"S3BucketName"},".me.csye6225.com"]]  
+        }
+      }
+    },
     "CodeDeployEC2Role" : {
       "Type": "AWS::IAM::Role",
              "Properties": {
@@ -34,7 +42,8 @@
                    } ]
                 },
                 "Path": "/",
-                "RoleName" : "CodeDeployEC2ServiceRole"
+                "RoleName" : "CodeDeployEC2ServiceRole",
+                "ManagedPolicyArns" : ["arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM","arn:aws:iam::aws:policy/CloudWatchAgentAdminPolicy","arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy","arn:aws:iam::aws:policy/AmazonSNSFullAccess"]
             }
     },
     "CodeDeployEC2S3" : {
@@ -72,13 +81,34 @@
                 },
                 "Path": "/",
                 "RoleName" : "CodeDeployServiceRole",
-                "ManagedPolicyArns" : ["arn:aws:iam::aws:policy/service-role/AWSCodeDeployRole"]
+                "ManagedPolicyArns" : ["arn:aws:iam::aws:policy/service-role/AWSCodeDeployRole","arn:aws:iam::aws:policy/AmazonSNSFullAccess"]
               }
     },
     "TravisUploadToS3" : {
       "Type" : "AWS::IAM::Policy",
       "Properties" : {
             "PolicyName" : "Travis-Upload-To-S3",
+            "PolicyDocument" : {
+              "Version": "2012-10-17",
+              "Statement": [
+                  {
+                      "Effect": "Allow",
+                      "Action": [
+                          "s3:PutObject"
+                      ],
+                      "Resource": [
+                          "*"
+                      ]
+                  }
+              ]
+          },
+          "Users" : [{"Ref" : "TravisUser"}]
+      }
+    },
+    "TravisLambdaUploadToS3" : {
+      "Type" : "AWS::IAM::Policy",
+      "Properties" : {
+            "PolicyName" : "Travis-Lambda-Upload-To-S3",
             "PolicyDocument" : {
               "Version": "2012-10-17",
               "Statement": [
@@ -139,6 +169,23 @@
           "Users" : [{"Ref" : "TravisUser"}]
         }
     },
+    "CodeDeployLambdaS3":{
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+          "PolicyName": "CodeDeploy-Lambda-S3",
+          "PolicyDocument": {
+              "Version" : "2012-10-17",
+              "Statement": [ {
+                  "Effect": "Allow",
+                  "Action": ["s3:Get*", "s3:List*"],
+                  "Resource": ["*"]
+              }]
+
+          },
+          "Users" : [{"Ref" : "TravisUser"}]
+
+      }
+},
     "TravisUser" : {
         "Type" : "AWS::IAM::User",
         "Properties" : {
@@ -188,6 +235,21 @@
         "ServiceRoleArn" : {"Fn::Join" : ["",["arn:aws:iam::",{"Ref":"AccountId"},":role/CodeDeployServiceRole"]]  
         }
       }
+    },
+    "MySNSTopic" : {
+      "Type" : "AWS::SNS::Topic",
+      "Properties" : {
+        "DisplayName" : "SNSTopicDisplayName",
+        "TopicName" : "SNSTopicName",
+        "Subscription" : [
+          {
+            "Endpoint" : {"Fn::Join" : ["",["arn:aws:lambda:us-east-1:",{"Ref":"AccountId"},":function:SNSTopicName"]]  
+            },
+            "Protocol" : "lambda"
+          }
+        ]
+      }
+
     }
   }
 }
