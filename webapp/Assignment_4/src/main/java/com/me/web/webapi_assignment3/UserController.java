@@ -4,7 +4,8 @@ import com.me.web.dao.UserDao;
 import com.me.web.pojo.User;
 
 import com.me.web.service.AmazonSNSHelper;
-
+import com.me.web.service.LogHelper;
+import com.timgroup.statsd.StatsDClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.crypto.bcrypt.BCrypt;
@@ -26,12 +27,18 @@ public class UserController {
     @Autowired
     AmazonSNSHelper amazonSNS;
 
+    @Autowired
+    private StatsDClient statsDClient;
+
+
+    LogHelper logger = new LogHelper();
+
     @RequestMapping(value = "user/save", method = RequestMethod.POST)
     public String saveUser(HttpServletRequest req, UserDao userDao) throws Exception{
-    
+        statsDClient.incrementCounter("endpoint.user.save.api.post");
         String username = req.getParameter("username");
         String password = req.getParameter("password");
-       
+        logger.logInfoEntry("Entering");
         if(username != null && password != null && username.length() > 0 && password.length() > 0) {
             User user = new User();
             user.setUsername(username);
@@ -40,18 +47,18 @@ public class UserController {
             user.setPassword(password);
             int val = userDao.createUser(user);
             if(val==2) {
-               
+                logger.logInfoEntry("User successfully registered");
                 return "{message:'User successfully registered'}";
             }
             else if(val == 1){
-              
+                logger.logInfoEntry("Email ID incorrect");
                 return "{message:'Email ID incorrect'}";
             }
         }else{
-         
+            logger.logInfoEntry("Username or password cannot be blank");
             return "Username or password cannot be blank";
         }
-        
+        logger.logInfoEntry("User already exist");
         return "{message:'User already exist'}";
     }
 
@@ -108,18 +115,19 @@ public class UserController {
 
     @RequestMapping(value = "user/reset", method = RequestMethod.POST)
     public Object resetPassword(HttpServletRequest req, UserDao userDao) throws Exception{
+            statsDClient.incrementCounter("endpoint.user.reset.api.post");
             HashMap<String,Object> map = new HashMap<>();
             String username = req.getParameter("username");
-           
+        logger.logInfoEntry("Reset API logging");
             User user = userDao.getUser(username);
             if (user != null ) {
                 amazonSNS.publish(username);
                 map.put("Code", 200);
                 map.put("Description", "Successfully complete!");
-             
+                logger.logInfoEntry("Successfully complete!");
                 return map;
             } else {
-              
+                logger.logInfoEntry("Unauthorized!");
                 return "Unauthorized";
             }
     }
