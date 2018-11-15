@@ -1,7 +1,7 @@
 version: 0.0
 os: linux
 
-files:
+files:             
   - source: ./webapp/Assignment_4/target/webapi_assignment3-0.0.1-SNAPSHOT.war
     destination: /opt/tomcat/webapps
 
