@@ -1,5 +1,5 @@
 echo " "
-echo "---Terminate Application Stack---"
+echo "---Terminate Auto Scaling Application Stack---"
 echo " "
 echo "Enter the name for stack"
 read stack_name

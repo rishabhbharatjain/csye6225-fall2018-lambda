@@ -1,0 +1,216 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "AWS WAF Basic OWASP Stack AWS CloudFormation",
+  "Parameters" : {
+     "LoadBalancerArnNo":{
+       "Type": "String"
+     }
+   },
+   "Resources": {
+     "wafrSQLiSet": {
+       "Type": "AWS::WAFRegional::SqlInjectionMatchSet",
+       "Properties" : {
+         "Name": "wafrSQLiSet",
+         "SqlInjectionMatchTuples": [
+            {
+               "FieldToMatch": {
+                  "Type": "URI"
+               },
+               "TextTransformation": "URL_DECODE"
+            },
+            {
+               "FieldToMatch": {
+                  "Type": "URI"
+               },
+               "TextTransformation": "HTML_ENTITY_DECODE"
+            },
+            {
+               "FieldToMatch": {
+                  "Type": "QUERY_STRING"
+               },
+               "TextTransformation": "URL_DECODE"
+            },
+            {
+               "FieldToMatch": {
+                  "Type": "QUERY_STRING"
+               },
+               "TextTransformation": "HTML_ENTITY_DECODE"
+            },
+            {
+               "FieldToMatch": {
+                  "Type": "BODY"
+               },
+               "TextTransformation": "URL_DECODE"
+            },
+            {
+               "FieldToMatch": {
+                  "Type": "BODY"
+               },
+               "TextTransformation": "HTML_ENTITY_DECODE"
+            },
+            {
+               "FieldToMatch": {
+                  "Type": "HEADER",
+                  "Data": "cookie"
+               },
+               "TextTransformation": "URL_DECODE"
+            },
+            {
+               "FieldToMatch": {
+                  "Type": "HEADER",
+                  "Data": "cookie"
+               },
+               "TextTransformation": "HTML_ENTITY_DECODE"
+            }
+         ]
+       }
+     },
+     "wafrSQLiRule": {
+        "Type": "AWS::WAFRegional::Rule",
+        "Properties": {
+           "MetricName": "wafrSQLiRule",
+           "Name": "wafr-SQLiRule",
+           "Predicates": [
+              {
+                 "Type": "SqlInjectionMatch",
+                 "Negated": false,
+                 "DataId": {"Ref" : "wafrSQLiSet"}
+              }
+           ]
+        }
+     },
+     "wafrSizeRestrictionSet": {
+        "Type": "AWS::WAFRegional::SizeConstraintSet",
+        "Properties": {
+           "Name": "wafrSQLiRule",
+           "SizeConstraints": [
+              {
+                 "FieldToMatch": {
+                    "Type": "URI"
+                 },
+                 "TextTransformation": "NONE",
+                 "ComparisonOperator": "GT",
+                 "Size": "4096"
+              },
+              {
+                 "FieldToMatch": {
+                    "Type": "QUERY_STRING"
+                 },
+                 "TextTransformation": "NONE",
+                 "ComparisonOperator": "GT",
+                 "Size": "4096"
+              },
+              {
+                 "FieldToMatch": {
+                    "Type": "BODY"
+                 },
+                 "TextTransformation": "NONE",
+                 "ComparisonOperator": "GT",
+                 "Size": "4096"
+              },
+              {
+                 "FieldToMatch": {
+                    "Type": "HEADER",
+                    "Data": "cookie"
+                 },
+                 "TextTransformation": "NONE",
+                 "ComparisonOperator": "GT",
+                 "Size": "4093"
+              }
+           ]
+        }
+     },
+     "wafrSizeRestrictionRule": {
+        "Type": "AWS::WAFRegional::Rule",
+        "Properties": {
+           "MetricName": "wafrSizeRestrictionRule",
+           "Name": "wafr-SizeRestriction-Rule",
+           "Predicates": [
+              {
+                 "Type": "SizeConstraint",
+                 "Negated": false,
+                 "DataId": {"Ref" : "wafrSizeRestrictionSet"}
+              }
+           ]
+        }
+     },
+     "wafrBlacklistIpSet": {
+        "Type": "AWS::WAFRegional::IPSet",
+        "Properties": {
+           "Name": "wafrBlacklistIpSet",
+           "IPSetDescriptors": [
+              {
+                 "Type": "IPV4",
+                 "Value": "10.0.0.0/8"
+              },
+              {
+                 "Type": "IPV4",
+                 "Value": "192.168.0.0/16"
+              },
+              {
+                 "Type": "IPV4",
+                 "Value": "169.254.0.0/16"
+              },
+              {
+                 "Type": "IPV4",
+                 "Value": "172.16.0.0/16"
+              }
+           ]
+        }
+     },
+     "wafgBlacklistIpRule": {
+        "Type": "AWS::WAFRegional::Rule",
+        "Properties": {
+           "MetricName": "wafgBlacklistIpRule",
+           "Name": "wafg-Blacklist-IpRule",
+           "Predicates": [
+              {
+                 "Type": "IPMatch",
+                 "Negated": false,
+                 "DataId": {"Ref" : "wafrBlacklistIpSet"}
+              }
+           ]
+        }
+     },
+     "wafgOwaspACL": {
+        "Type": "AWS::WAFRegional::WebACL",
+        "Properties": {
+           "MetricName": "wafgOwaspACL",
+           "DefaultAction": {
+              "Type": "ALLOW"
+           },
+           "Name": "wafgOwaspACL",
+          "Rules": [
+              {
+                 "Action": {
+                    "Type": "BLOCK"
+                 },
+                 "Priority": 10,
+                 "RuleId": {"Ref" : "wafrSQLiRule"}
+              },
+              {
+                 "Action": {
+                    "Type": "BLOCK"
+                 },
+                 "Priority": 50,
+                 "RuleId": {"Ref" : "wafrSizeRestrictionRule"}
+              },
+              {
+                 "Action": {
+                    "Type": "BLOCK"
+                 },
+                 "Priority": 100,
+                 "RuleId": {"Ref" :"wafgBlacklistIpRule"}
+              }
+           ]
+        }
+     },
+     "MyWebACLAssociation": {
+       "Type": "AWS::WAFRegional::WebACLAssociation",
+       "Properties": {
+         "ResourceArn": {"Ref" : "LoadBalancerArnNo"},
+         "WebACLId": { "Ref": "wafgOwaspACL" }
+       }
+     }
+   }
+}
