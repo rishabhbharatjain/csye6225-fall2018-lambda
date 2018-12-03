@@ -7,6 +7,8 @@ import com.me.web.pojo.Attachment;
 import com.me.web.pojo.Transaction;
 import com.me.web.pojo.User;
 import com.me.web.service.AmazonClient;
+import com.me.web.service.LogHelper;
+import com.timgroup.statsd.StatsDClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
@@ -30,9 +32,16 @@ public class TransactionController {
     @Autowired
     private AmazonClient amazonClient;
 
+    @Autowired
+    private StatsDClient statsDClient;
+
+
+    LogHelper logger = new LogHelper();
+
     @RequestMapping(value = "transaction", method = RequestMethod.POST)
     public HashMap<String, Object> saveTransaction(HttpServletRequest req, TransactionDao txDao, UserDao userDao, AttachmentDao attachmentDao, @RequestPart(value="file", required = false) MultipartFile file) throws  Exception{
-
+        statsDClient.incrementCounter("endpoint.transaction.api.post");
+        logger.logInfoEntry("Save transaction API initiated");
         String headers = req.getHeader(HttpHeaders.AUTHORIZATION);
         User user = null;
         HashMap<String, Object> map = new HashMap<>();
@@ -43,8 +52,10 @@ public class TransactionController {
             final String[] values = credentials.split(":", 2);
             user = userDao.verifyUser(values[0], values[1]);
             if (user == null || user.getUsername().isEmpty()) {
+                logger.logInfoEntry("Unauthorized access");
                 map.put("Code",401);
                 map.put("Description","Unauthorized");
+                UserDao.close();
                 return map;
             }else{
                 String description = req.getParameter("description");
@@ -82,14 +93,21 @@ public class TransactionController {
                             }
                         }
                         }
-
+                        logger.logInfoEntry("Successfully saved");
                         map.put("Description",tx);
                         map.put("Code",200);
+                        txDao.close();
+                        userDao.close();
+                        attachmentDao.close();
                         return map;
                     }
             }
         }
+        logger.logInfoEntry("Save user transacton Unauthorized Access");
         map.put("Code",401);map.put("Description","Unauthorized");
+        txDao.close();
+        userDao.close();
+        attachmentDao.close();
         return map;
 
     }
@@ -97,6 +115,8 @@ public class TransactionController {
 
     @RequestMapping(value = "transaction/{id}/attachments", method = RequestMethod.POST)
     public HashMap<String, Object> saveAttachments(@PathVariable("id") UUID id, HttpServletRequest req, TransactionDao txDao, AttachmentDao attachmentDao, UserDao userDao, @RequestPart("file") MultipartFile file) throws  Exception{
+        statsDClient.incrementCounter("endpoint.transaction.id.attachments.api.post");
+        logger.logInfoEntry("transaction/{id}/attachments initiated");
         String headers = req.getHeader(HttpHeaders.AUTHORIZATION);
         User user = null;
         HashMap<String, Object> map = new HashMap<>();
@@ -107,8 +127,12 @@ public class TransactionController {
             final String[] values = credentials.split(":", 2);
             user = userDao.verifyUser(values[0], values[1]);
             if (user == null || user.getUsername().isEmpty()) {
+                logger.logInfoEntry("Unauthorized access");
                 map.put("Code",401);
                 map.put("Description","Unauthorized");
+                //txDao.close();
+                //userDao.close();
+                //attachmentDao.close();
                 return map;
             }else{
                 UUID txId = id;
@@ -133,22 +157,38 @@ public class TransactionController {
                                    attachment.setUrl(fileUrl);
                                    attachmentDao.editAttachments(attachment);
                         }
+                        logger.logInfoEntry("transaction/{id}/attachments successfuly saved");
+                        //txDao.close();
+                        //userDao.close();
+                        //attachmentDao.close();
                         return map;
                     }
                     else{
+                        logger.logInfoEntry("transaction/{id}/attachments unsuccessful");
                         map.put("Description", "Attachment unsuccessful");
                         map.put("Code", 500);
+                        //txDao.close();
+                        //userDao.close();
+                        //attachmentDao.close();
                         return map;
                     }
                 }
                 else{
+                    logger.logInfoEntry("transaction/{id}/attachments unauthorized access");
                     map.put("Code", 401);
                     map.put("Description", "Unauthorized");
+                    //txDao.close();
+                    //userDao.close();
+                    //attachmentDao.close();
                     return map;
                 }
             }
         }
+        logger.logInfoEntry("transaction/{id}/attachments unauthorized access");
         map.put("Code",401);map.put("Description","Unauthorized");
+        //txDao.close();
+        //userDao.close();
+        //attachmentDao.close();
         return map;
 
     }
@@ -156,6 +196,8 @@ public class TransactionController {
 
     @RequestMapping(value="transaction/{id}", method = RequestMethod.DELETE)
     public HashMap<String, Object> deleteTransaction(@PathVariable("id") UUID id, HttpServletRequest req, TransactionDao txDao, UserDao userDao, AttachmentDao attachmentDao) throws  Exception{
+        statsDClient.incrementCounter("endpoint.transaction.id.api.delete");
+        logger.logInfoEntry("transaction/{id}/ delete initiated");
         String headers = req.getHeader(HttpHeaders.AUTHORIZATION);
         User user = null;
         HashMap<String, Object> map = new HashMap<>();
@@ -166,6 +208,7 @@ public class TransactionController {
             final String[] values = credentials.split(":", 2);
             user = userDao.verifyUser(values[0], values[1]);
             if (user == null || user.getUsername().isEmpty()) {
+                logger.logInfoEntry("transaction/{id}/ delete Unauthorized");
                 map.put("Code",401);
                 map.put("Description","Unauthorized");
                 return map;
@@ -186,10 +229,12 @@ public class TransactionController {
                                     }
                                 }
                             }
+                            logger.logInfoEntry("transaction/{id}/ delete successful");
                             map.put("Code", 200);
                             map.put("Description", "Successfully Deleted");
                             return map;
                         } else {
+                            logger.logInfoEntry("transaction/{id}/ delete Bad request");
                             map.put("Code", 400);
                             map.put("Description", "Bad Request");
                             return map;
@@ -214,6 +259,8 @@ public class TransactionController {
 
     @RequestMapping(value = "transaction/{id}/attachments/{idAttachments}", method = RequestMethod.DELETE)
     public HashMap<String, Object> deleteAttachments(@PathVariable("id") UUID id, @PathVariable("idAttachments") UUID idAt,HttpServletRequest req, TransactionDao txDao, AttachmentDao attachmentDao, UserDao userDao) throws  Exception{
+        statsDClient.incrementCounter("endpoint.transaction.id.attachments.id.api.delete");
+        logger.logInfoEntry("transaction/{id}/attachments/{idAttachments} Bad request");
         String headers = req.getHeader(HttpHeaders.AUTHORIZATION);
         User user = null;
         HashMap<String, Object> map = new HashMap<>();
@@ -224,6 +271,7 @@ public class TransactionController {
             final String[] values = credentials.split(":", 2);
             user = userDao.verifyUser(values[0], values[1]);
             if (user == null || user.getUsername().isEmpty()) {
+                logger.logInfoEntry("transaction/{id}/ delete Bad request");
                 map.put("Code",401);
                 map.put("Description","Unauthorized");
                 return map;
@@ -270,6 +318,8 @@ public class TransactionController {
 
     @RequestMapping(value="transaction/{id}", method = RequestMethod.PUT)
     public HashMap<String, Object> updateTransaction(@PathVariable("id") UUID id, HttpServletRequest req, TransactionDao txDao, UserDao userDao) throws  Exception{
+        statsDClient.incrementCounter("endpoint.transaction.id.api.put");
+        logger.logInfoEntry("transaction/{id}/ put intiated");
         String headers = req.getHeader(HttpHeaders.AUTHORIZATION);
         User user = null;
         HashMap<String, Object> map = new HashMap<>();
@@ -306,6 +356,7 @@ public class TransactionController {
                     tx.setCategory(category);
                     tx.setUser(user);
                     if (txDao.editTransaction(tx) == 2) {
+                        logger.logInfoEntry("transaction/{id}/ put intiated");
                         map.put("Code", 201);
                         map.put("Description", "Created");
                         map.put("Transaction", tx);
@@ -330,6 +381,8 @@ public class TransactionController {
 
     @RequestMapping(value="transaction/{id}/attachments/{aid}", method = RequestMethod.PUT)
     public HashMap<String, Object> updateAttachmentTransaction(@PathVariable("id") UUID id,@PathVariable("aid") UUID aid, HttpServletRequest req, TransactionDao txDao, UserDao userDao, AttachmentDao attachmentDao,@RequestPart("file")MultipartFile file) throws  Exception{
+        statsDClient.incrementCounter("endpoint.transaction.id.attachments.id.api.put");
+        logger.logInfoEntry("transaction/{id}/attachments/{aid} put intiated");
         String headers = req.getHeader(HttpHeaders.AUTHORIZATION);
         User user = null;
         HashMap<String, Object> map = new HashMap<>();
@@ -372,7 +425,7 @@ public class TransactionController {
                             attachment.setUrl(fileUrl);
                             //attachmentDao.editAttachments(attachment);
                         }
-
+                        logger.logInfoEntry("transaction/{id}/attachments/{aid} put file updated");
                             map.put("Code", 200);
                             map.put("Description", "File updated");
 
@@ -394,8 +447,8 @@ public class TransactionController {
 
     @RequestMapping(value="transaction", method = RequestMethod.GET)
     public HashMap<String, Object> getAllTransaction(HttpServletRequest req, TransactionDao txDao, UserDao userDao) throws  Exception{
-
-
+        statsDClient.incrementCounter("endpoint.transaction.api.get");
+        logger.logInfoEntry("transaction get initiated");
         String headers = req.getHeader(HttpHeaders.AUTHORIZATION);
         HashMap<String, Object> map = new HashMap<>();
         User user = null;
@@ -412,6 +465,7 @@ public class TransactionController {
             }else{
                 List<Transaction> list = txDao.getAllTransaction(user.getId());
                 if(list.isEmpty()){
+                    logger.logInfoEntry("transaction get successful");
                     map.put("Code",200);
                     map.put("Description", "No transaction found");
                     //return "{message:'No transaction found'}";
@@ -431,6 +485,8 @@ public class TransactionController {
 
     @RequestMapping(value = "transaction/{id}/attachments", method = RequestMethod.GET)
     public HashMap<String, Object> getAllAttachments(@PathVariable("id") UUID id, HttpServletRequest req, TransactionDao txDao, AttachmentDao attachmentDao, UserDao userDao) throws  Exception{
+        statsDClient.incrementCounter("endpoint.transaction.id.attachments.api.get");
+        logger.logInfoEntry("transaction/{id}/attachments get initiated");
         String headers = req.getHeader(HttpHeaders.AUTHORIZATION);
         User user = null;
         HashMap<String, Object> map = new HashMap<>();
@@ -456,6 +512,7 @@ public class TransactionController {
                         return map;
                     }
                     else{
+                        logger.logInfoEntry("transaction/{id}/attachments get successful");
                         map.put("Code", 200);
                         map.put("Description", "OK");
                         map.put("Attachment", list);
