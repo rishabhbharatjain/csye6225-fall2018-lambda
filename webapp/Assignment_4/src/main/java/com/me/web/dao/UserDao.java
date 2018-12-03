@@ -21,6 +21,7 @@ public class UserDao extends DAO{
             begin();
             getSession().save(user);
             commit();
+            close();
             return 2;
         }catch(Exception e){
             rollback();
@@ -67,6 +68,7 @@ public class UserDao extends DAO{
                 user = (User)getSession().createQuery("from User where username=:username").setString("username",username).getSingleResult();
             else
                 user = null;
+//            close();
             return user;
         }catch(HibernateException e){
             rollback();
@@ -80,6 +82,7 @@ public class UserDao extends DAO{
             begin();
             Query q = getSession().createQuery("from User");
             List<User> list = (List<User>)q.getResultList();
+
             commit();
             return list;
         }catch(HibernateException e){

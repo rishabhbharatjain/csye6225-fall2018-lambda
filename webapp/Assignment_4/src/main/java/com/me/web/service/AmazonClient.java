@@ -38,17 +38,6 @@ public class AmazonClient{
         this.s3client = AmazonS3ClientBuilder.standard().build();
     }
 
-//    private File convertMultiPartToFile(MultipartFile file) throws IOException {
-//        File convFile = new File(file.getOriginalFilename());
-//        FileOutputStream fos = new FileOutputStream(convFile);
-//        fos.write(file.getBytes());
-//        fos.close();
-//        return convFile;
-//    }
-
-//    private String generateFileName(MultipartFile multiPart) {
-//        return new Date().getTime() + "-" + multiPart.getOriginalFilename().replace(" ", "_");
-//    }
 
     private void uploadFileTos3bucket(String fileName, MultipartFile file) {
         ObjectMetadata objMeta = new ObjectMetadata();
@@ -68,11 +57,9 @@ public class AmazonClient{
 
         String fileUrl = "";
         try {
-//            File file = convertMultiPartToFile(multipartFile);
             String fileName = id;//generateFileName(multipartFile);
             uploadFileTos3bucket(fileName, multipartFile);
             fileUrl = this.s3client.getUrl(this.bucketName,fileName).toString();
-//            file.delete();
         } catch (Exception e) {
             e.printStackTrace();
         }

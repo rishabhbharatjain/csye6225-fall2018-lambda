@@ -101,12 +101,6 @@ public class Transaction {
         this.category = category;
     }
 
-//    public List<Attachment> getAttachmentList(int id) throws Exception{
-//        attachmentList = new ArrayList<>();
-//        AttachmentDao attachmentDao = new AttachmentDao();
-//        //attachmentList = attachmentDao.getAttachmentByTransaction(id);
-//        return attachmentList;
-//    }
     public List<Attachment> getAttachmentList() {
         return attachmentList;
     }

@@ -23,36 +23,15 @@ public class Attachment {
     @Column(name="path")
     private String url;
 
-//    @Column(name="file_path")
-//    private String filePath;
-//
-//    @Transient
-//    private MultipartFile file;
-
     public Attachment(){}
 
     public UUID getId(){ return id;}
 
-
     public Transaction getTransaction(){ return transaction;}
-
-//    public String getFilePath(){return filePath;}
-//
-//    public MultipartFile getFile() {
-//        return file;
-//    }
 
     public void setId(UUID id){ this.id = id;}
 
-
     public void setTransaction(Transaction transaction){ this.transaction = transaction;}
-
-//    public void setFilePath(String filePath){this.filePath = filePath;}
-//
-//    public void setFile(MultipartFile file) {
-//        this.file = file;
-//    }
-
 
     public String getUrl() {
         return url;
